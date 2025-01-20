@@ -1,0 +1,15 @@
+{
+  "Author": "Fuwa Aika",
+  "Name": "Razer Reader",
+  "Punchline": "Display the battery level of your wireless Razer devices",
+  "Description": "Select your installed version of Razer Synapse to automatically pull device battery levels from local log files",
+  "ApplicableVersion": "any",
+  "Tags": [
+    "razer",
+    "battery",
+    "mouse",
+	"headset",
+	"keyboard",
+	"wireless"
+  ]
+}
