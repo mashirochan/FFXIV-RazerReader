@@ -104,8 +104,8 @@ public class MainWindow : Window, IDisposable
             }
             ImGui.SameLine();
         }
-
-        ImGuiHelpers.SafeTextColoredWrapped(GetLevelColor(device.level), $"{device.level}%");
+        // TO-DO: Actually align battery levels...
+        ImGuiHelpers.SafeTextColoredWrapped(GetLevelColor(device.level), $"{(device.level.ToString().Length == 1 ? "   " : "")}{device.level}%");
 
         using (ImRaii.PushIndent(1))
         {
