@@ -1,4 +1,5 @@
 using Dalamud.Game.Command;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
@@ -25,7 +26,8 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
-    [PluginService] public static IDtrBar DtrBar { get; private set; } = null!;
+    [PluginService] internal static IDtrBar DtrBar { get; private set; } = null!;
+    [PluginService] internal static INotificationManager NotificationManager { get; private set; } = null!;
 
     private const string CommandName = "/prazer";
 
@@ -36,7 +38,6 @@ public sealed class Plugin : IDalamudPlugin
     private MainWindow MainWindow { get; init; }
     private ServerBar ServerBar { get; init; }
 
-    public static DeviceList DeviceList { get; private set; } = new();
     private readonly Timer? pollingTimer;
     private DateTime lastWriteTime;
 
@@ -104,39 +105,6 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    private string? GetDirectoryPath()
-    {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        string directoryPath;
-
-        if (Configuration.SynapseVersion == 4)
-        {
-            directoryPath = Path.Combine(localAppData, "Razer", "RazerAppEngine", "User Data", "Logs");
-        }
-        else
-        {
-            directoryPath = Path.Combine(localAppData, "Razer", "Synapse3", "Log");
-        }
-
-        if (Directory.Exists(directoryPath))
-        {
-            return directoryPath;
-        }
-        else
-        {
-            Log.Error($"The directory \"{directoryPath}\" could not be retrieved!");
-            return null;
-        }
-    }
-
-    private string GetFileFilter()
-    {
-        if (Configuration.SynapseVersion == 4)
-            return "systray_systrayv2*.log";
-        else
-            return "Razer Synapse 3*.log";
-    }
-
     private static string? GetMostRecentFile(string directoryPath, string fileFilter)
     {
         try
@@ -169,23 +137,27 @@ public sealed class Plugin : IDalamudPlugin
         {
             Log.Debug("Polling...");
 
-            var directoryPath = GetDirectoryPath();
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var directoryPath = Path.Combine(localAppData, "Razer", "RazerAppEngine", "User Data", "Logs");
 
-            if (directoryPath == null)
+            if (!Directory.Exists(directoryPath))
             {
-                Log.Error("Please check to make sure your Synapse Version is set correctly and that the above directory exists!");
+                Log.Error($"Please make sure you have Synapse v4 installed and \"{directoryPath}\" exists!");
                 var errorDevice = new Device()
                 {
                     name = "Error, check logs!",
                     category = "ERROR",
                     chargingStatus = "ERROR",
-                    level = 0
+                    level = 0,
+                    hasBattery = false,
+                    enabled = true
                 };
-                DeviceList.Mice = [errorDevice];
+                Configuration.DeviceList.Mice = [errorDevice];
+                Configuration.Save();
                 return;
             }
 
-            var fileFilter = GetFileFilter();
+            var fileFilter = "systray_systrayv2*.log";
             var mostRecentFilePath = GetMostRecentFile(directoryPath, fileFilter);
 
             if (mostRecentFilePath == null)
@@ -206,8 +178,9 @@ public sealed class Plugin : IDalamudPlugin
                 {
                     Log.Debug($"Detected change via polling: {mostRecentFilePath}");
                 }
-                lastWriteTime = writeTime;
+
                 ReadLatestContent(mostRecentFilePath);
+                lastWriteTime = writeTime;
             }
             else
             {
@@ -281,24 +254,58 @@ public sealed class Plugin : IDalamudPlugin
             return;
         }
             
-        SetDeviceList(devices);
+        SetDeviceList(ConvertDeviceLogsToDevices(devices));
     }
 
-    public void SetDeviceList(List<DeviceLog> deviceLogs)
+    public List<Device> ConvertDeviceLogsToDevices(List<DeviceLog> deviceLogs)
     {
-        var deviceList = new DeviceList();
+        List<Device> devices = [];
         foreach (var deviceLog in deviceLogs)
         {
-            if (deviceLog.hasBattery == false)
-                continue;
-            
-            var device = new Device()
+            var existingDevice = GetExistingDevice(deviceLog.name.en);
+
+            if (existingDevice != null)
             {
-                name = deviceLog.name.en,
-                category = deviceLog.category,
-                chargingStatus = deviceLog.powerStatus.chargingStatus,
-                level = deviceLog.powerStatus.level
-            };
+                Log.Debug($"Found existing device: {existingDevice.name}");
+                existingDevice.level = deviceLog.powerStatus.level;
+                existingDevice.chargingStatus = deviceLog.powerStatus.chargingStatus;
+                devices.Add(existingDevice);
+            }
+            else
+            {
+                Log.Debug($"Device not found, adding: {deviceLog.name.en}");
+                devices.Add(new Device()
+                {
+                    name = deviceLog.name.en,
+                    category = deviceLog.category,
+                    chargingStatus = deviceLog.powerStatus.chargingStatus,
+                    level = deviceLog.powerStatus.level,
+                    hasBattery = deviceLog.hasBattery,
+                    enabled = true
+                });
+            }
+        }
+        return devices;
+    }
+
+    public Device? GetExistingDevice(string name)
+    {
+        foreach (var mouse in Configuration.DeviceList.Mice)
+        {
+            if (mouse.name == name)
+                return mouse;
+        }
+        return null;
+    }
+
+    public void SetDeviceList(List<Device> devices)
+    {
+        var deviceList = new DeviceList();
+        var lowBatteryDevices = new List<Device>();
+        foreach (var device in devices)
+        {
+            if (device.hasBattery == false)
+                continue;
 
             if (device.category == "MOUSE") deviceList.Mice.Add(device);
             else if (device.category == "KEYBOARD") deviceList.Keyboards.Add(device);
@@ -308,10 +315,37 @@ public sealed class Plugin : IDalamudPlugin
             {
                 deviceList.LowestDevice = device;
             }
+
+            if (device.level < Configuration.LowBatteryLevel)
+            {
+                lowBatteryDevices.Add(device);
+            }
         }
         Log.Debug(JsonConvert.SerializeObject(deviceList));
-        DeviceList = deviceList;
+        Configuration.DeviceList = deviceList;
+        Configuration.Save();
         Log.Info("Device information updated!");
         ServerBar.UpdateDtrBar();
+
+        if (Configuration.LowBatteryNotification && lowBatteryDevices.Count > 0)
+        {
+            var deviceStr = "";
+
+            foreach (var device in lowBatteryDevices)
+            {
+                deviceStr += $"- {device.name} ({device.level}%)\n";
+            }
+
+            var lowBattyNotification = new Notification()
+            {
+                Title = "Low Battery Warning!",
+                Content = $"The following devices have low battery:\n{deviceStr}",
+                MinimizedText = "Devices have low battery!",
+                Type = NotificationType.Warning
+
+            };
+
+            NotificationManager.AddNotification(lowBattyNotification);
+        }
     }
 }

@@ -1,4 +1,5 @@
 using Dalamud.Configuration;
+using RazerReader.Models;
 using System;
 
 namespace RazerReader;
@@ -16,7 +17,9 @@ public class Configuration : IPluginConfiguration
     public bool ColorPercent { get; set; } = true;
     public bool ShowBatteryIcon { get; set; } = true;
     public bool ShowDtrEntry { get; set; } = false;
-    public int SynapseVersion { get; set; } = 4;
+    public bool LowBatteryNotification { get; set; } = true;
+    public int LowBatteryLevel { get; set; } = 15;
+    public DeviceList DeviceList { get; set; } = new DeviceList();
 
     public void Save()
     {

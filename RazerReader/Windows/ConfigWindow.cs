@@ -1,7 +1,10 @@
 using System;
 using System.Numerics;
+using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace RazerReader.Windows;
 
@@ -112,34 +115,56 @@ public class ConfigWindow : Window, IDisposable
 
         ImGui.Spacing();
 
-        string[] synapseOptions = ["v3", "v4"];
-        var synapseVersion = config.SynapseVersion;
-        var synapseIndex = synapseVersion == 3 ? 0 : 1;
-        ImGui.SetNextItemWidth(50);
-        if (ImGui.BeginCombo("##SynapseVersion", synapseOptions[synapseIndex]))
+        var lowBatteryNotification = config.LowBatteryNotification;
+        if (ImGui.Checkbox("Low Battery Notification", ref lowBatteryNotification))
         {
-            for (var i = 0; i < synapseOptions.Length; i++)
-            {
-                var isSelected = (synapseIndex == i);
-                if (ImGui.Selectable(synapseOptions[i], isSelected))
-                {
-                    synapseVersion = (i == 0) ? 3 : 4;
-                    config.SynapseVersion = synapseVersion;
-                    Plugin.Log.Debug($"SynapseVersion set to: {synapseVersion}");
-                    config.Save();
-                    plugin.PollFileForChanges(true);
-                }
-
-                if (isSelected)
-                {
-                    ImGui.SetItemDefaultFocus();
-                }
-            }
-            ImGui.EndCombo();
+            config.LowBatteryNotification = lowBatteryNotification;
+            Plugin.Log.Debug($"LowBatteryNotification set to: {(lowBatteryNotification ? "True" : "False")}");
+            config.Save();
         }
 
-        ImGui.SameLine();
+        ImGui.Spacing();
 
-        ImGui.TextUnformatted("Synapse Version");
+        ImGui.PushItemWidth(100);
+        ImGui.BeginDisabled(!config.LowBatteryNotification);
+
+        var lowBatteryLevel = config.LowBatteryLevel;
+        if (ImGui.SliderInt("Low Battery %", ref lowBatteryLevel, 0, 100))
+        {
+            config.LowBatteryLevel = lowBatteryLevel;
+            Plugin.Log.Debug($"LowBatteryLevel set to: {lowBatteryLevel}");
+            config.Save();
+        }
+
+        ImGui.PopItemWidth();
+        ImGui.EndDisabled();
+
+        ImGui.Spacing();
+
+        using (ImRaii.Table("##deviceTable", 3))
+        {
+            ImGui.TableSetupColumn("Show", ImGuiTableColumnFlags.None, 50 * ImGuiHelpers.GlobalScale);
+            ImGui.TableSetupColumn("Bat. %", ImGuiTableColumnFlags.None, 50 * ImGuiHelpers.GlobalScale);
+            ImGui.TableSetupColumn("Device Name", ImGuiTableColumnFlags.None, 200 * ImGuiHelpers.GlobalScale);
+            ImGui.TableHeadersRow();
+
+            foreach (var mouse in plugin.Configuration.DeviceList.Mice)
+            {
+                ImGui.TableNextColumn();
+                var isChecked = mouse.enabled;
+                if (ImGui.Checkbox($"##show_{mouse.name}", ref isChecked))
+                {
+                    mouse.enabled = isChecked;
+                    Plugin.Log.Debug($"{mouse.name} is set to: {(isChecked ? "Show" : "Hide")}");
+                    config.Save();
+                }
+
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted($"{mouse.level}%");
+
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(mouse.name);
+            }
+        }
     }
 }

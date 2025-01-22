@@ -76,8 +76,11 @@ public class MainWindow : Window, IDisposable
             drawList.AddRect(outlinePos, outlineSize, outlineColor, 0.0f, ImDrawFlags.None, thickness);
         }
 
-        foreach (var device in Plugin.DeviceList.Mice)
+        foreach (var device in config.DeviceList.Mice)
         {
+            if (!device.enabled)
+                continue;
+
             if (config.ShowBatteryIcon)
             {
                 using (ImRaii.PushFont(UiBuilder.IconFont))
@@ -143,7 +146,7 @@ public class MainWindow : Window, IDisposable
         }
         else if (level > 15)
         {
-            return KnownColor.Orange.Vector();
+            return KnownColor.OrangeRed.Vector();
         }
         else
         {

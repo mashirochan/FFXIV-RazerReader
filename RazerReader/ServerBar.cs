@@ -38,9 +38,9 @@ namespace RazerReader
             if (plugin.Configuration.ShowDtrEntry)
             {
                 dtrEntry!.Shown = true;
-                if (!Plugin.DeviceList.IsEmpty() && Plugin.DeviceList.LowestDevice != null)
+                if (!plugin.Configuration.DeviceList.IsEmpty() && plugin.Configuration.DeviceList.LowestDevice != null)
                 {
-                    dtrEntry.Text = $"{Plugin.DeviceList.LowestDevice!.level}% {Plugin.DeviceList.LowestDevice!.name}";
+                    dtrEntry.Text = $"{plugin.Configuration.DeviceList.LowestDevice!.level}% {plugin.Configuration.DeviceList.LowestDevice!.name}";
                 }
                 else
                 {
