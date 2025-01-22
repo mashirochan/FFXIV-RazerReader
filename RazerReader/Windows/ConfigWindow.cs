@@ -4,6 +4,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
+using RazerReader.Models;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace RazerReader.Windows;
@@ -150,21 +151,34 @@ public class ConfigWindow : Window, IDisposable
 
             foreach (var mouse in plugin.Configuration.DeviceList.Mice)
             {
-                ImGui.TableNextColumn();
-                var isChecked = mouse.enabled;
-                if (ImGui.Checkbox($"##show_{mouse.name}", ref isChecked))
-                {
-                    mouse.enabled = isChecked;
-                    Plugin.Log.Debug($"{mouse.name} is set to: {(isChecked ? "Show" : "Hide")}");
-                    config.Save();
-                }
-
-                ImGui.TableNextColumn();
-                ImGui.TextUnformatted($"{mouse.level}%");
-
-                ImGui.TableNextColumn();
-                ImGui.TextUnformatted(mouse.name);
+                DrawDevice(mouse);
+            }
+            foreach (var keyboard in plugin.Configuration.DeviceList.Keyboards)
+            {
+                DrawDevice(keyboard);
+            }
+            foreach (var headset in plugin.Configuration.DeviceList.Headsets)
+            {
+                DrawDevice(headset);
             }
         }
+    }
+
+    private void DrawDevice(Device device)
+    {
+        ImGui.TableNextColumn();
+        var isChecked = device.enabled;
+        if (ImGui.Checkbox($"##show_{device.name}", ref isChecked))
+        {
+            device.enabled = isChecked;
+            Plugin.Log.Debug($"{device.name} is set to: {(isChecked ? "Show" : "Hide")}");
+            config.Save();
+        }
+
+        ImGui.TableNextColumn();
+        ImGui.TextUnformatted($"{device.level}%");
+
+        ImGui.TableNextColumn();
+        ImGui.TextUnformatted(device.name);
     }
 }

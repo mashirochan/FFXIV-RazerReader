@@ -295,6 +295,16 @@ public sealed class Plugin : IDalamudPlugin
             if (mouse.name == name)
                 return mouse;
         }
+        foreach (var keyboard in Configuration.DeviceList.Keyboards)
+        {
+            if (keyboard.name == name)
+                return keyboard;
+        }
+        foreach (var headset in Configuration.DeviceList.Headsets)
+        {
+            if (headset.name == name)
+                return headset;
+        }
         return null;
     }
 

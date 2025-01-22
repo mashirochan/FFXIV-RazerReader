@@ -3,6 +3,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
+using RazerReader.Models;
 using System;
 using System.Drawing;
 using System.Numerics;
@@ -76,30 +77,43 @@ public class MainWindow : Window, IDisposable
             drawList.AddRect(outlinePos, outlineSize, outlineColor, 0.0f, ImDrawFlags.None, thickness);
         }
 
-        foreach (var device in config.DeviceList.Mice)
+        foreach (var mouse in config.DeviceList.Mice)
         {
-            if (!device.enabled)
-                continue;
-
-            if (config.ShowBatteryIcon)
-            {
-                using (ImRaii.PushFont(UiBuilder.IconFont))
-                {
-                    ImGuiHelpers.SafeTextColoredWrapped(GetLevelColor(device.level), GetBatteryIcon(device.level));
-                }
-                ImGui.SameLine();
-            }
-
-            ImGuiHelpers.SafeTextColoredWrapped(GetLevelColor(device.level), $"{device.level}%");
-
-            using (ImRaii.PushIndent(1))
-            {
-                ImGui.SameLine();
-                ImGui.TextUnformatted(device.name);
-            }
-
-            ImGui.Spacing();
+            DrawDevice(mouse);
         }
+        foreach (var keyboard in config.DeviceList.Keyboards)
+        {
+            DrawDevice(keyboard);
+        }
+        foreach (var headset in config.DeviceList.Headsets)
+        {
+            DrawDevice(headset);
+        }
+    }
+
+    private void DrawDevice(Device device)
+    {
+        if (!device.enabled)
+            return;
+
+        if (config.ShowBatteryIcon)
+        {
+            using (ImRaii.PushFont(UiBuilder.IconFont))
+            {
+                ImGuiHelpers.SafeTextColoredWrapped(GetLevelColor(device.level), GetBatteryIcon(device.level));
+            }
+            ImGui.SameLine();
+        }
+
+        ImGuiHelpers.SafeTextColoredWrapped(GetLevelColor(device.level), $"{device.level}%");
+
+        using (ImRaii.PushIndent(1))
+        {
+            ImGui.SameLine();
+            ImGui.TextUnformatted(device.name);
+        }
+
+        ImGui.Spacing();
     }
 
     private static string GetBatteryIcon(int level)
