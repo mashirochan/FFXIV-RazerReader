@@ -319,7 +319,7 @@ public sealed class Plugin : IDalamudPlugin
 
             if (device.category == "MOUSE") deviceList.Mice.Add(device);
             else if (device.category == "KEYBOARD") deviceList.Keyboards.Add(device);
-            else if (device.category == "HEADSET") deviceList.Headsets.Add(device);
+            else if (device.category == "AUDIO") deviceList.Headsets.Add(device);
 
             if (deviceList.LowestDevice == null || device.level < deviceList.LowestDevice.level)
             {
