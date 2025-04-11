@@ -5,6 +5,7 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using RazerReader.Models;
 using RazerReader.Windows;
 using System;
@@ -243,41 +244,82 @@ public sealed class Plugin : IDalamudPlugin
         }
 
         var json = match.Value;
-        var devices = JsonConvert.DeserializeObject<List<DeviceLog>>(json);
+        var devicesArray = JArray.Parse(json);
 
-        if (devices == null)
+        if (devicesArray == null)
         {
             Log.Error("The device list could not be deserialized!");
             return;
         }
             
-        SetDeviceList(ConvertDeviceLogsToDevices(devices));
+        SetDeviceList(ConvertDeviceLogsToDevices(devicesArray));
     }
 
-    public List<Device> ConvertDeviceLogsToDevices(List<DeviceLog> deviceLogs)
+    public List<Device> ConvertDeviceLogsToDevices(JArray deviceLogs)
     {
         List<Device> devices = [];
         foreach (var deviceLog in deviceLogs)
         {
-            var existingDevice = GetExistingDevice(deviceLog.name.en);
+            var deviceName = deviceLog["name"]?["en"];
+
+            if (deviceName == null)
+            {
+                Log.Error("Device name not found! Skipping...");
+                continue;
+            }
+
+            var deviceLevel = deviceLog["powerStatus"]?["level"];
+
+            if (deviceLevel == null)
+            {
+                Log.Error("Device power level not found! Skipping...");
+                continue;
+            }
+
+            var deviceStatus = deviceLog["powerStatus"]?["chargingStatus"];
+
+            if (deviceStatus == null)
+            {
+                Log.Error("Device charging status not found! Skipping...");
+                continue;
+            }
+
+            var existingDevice = GetExistingDevice(deviceName.ToString());
 
             if (existingDevice != null)
             {
                 Log.Debug($"Found existing device: {existingDevice.name}");
-                existingDevice.level = deviceLog.powerStatus.level;
-                existingDevice.chargingStatus = deviceLog.powerStatus.chargingStatus;
+                existingDevice.level = deviceLevel.Value<int>();
+                existingDevice.chargingStatus = deviceStatus.ToString();
                 devices.Add(existingDevice);
             }
             else
             {
-                Log.Debug($"Device not found, adding: {deviceLog.name.en}");
+                Log.Debug($"Device not found, adding: {deviceName.ToString()}");
+
+                var deviceCategory = deviceLog["category"];
+
+                if (deviceCategory == null)
+                {
+                    Log.Error("Device category not found! Skipping...");
+                    continue;
+                }
+
+                var deviceHasBattery = deviceLog["hasBattery"];
+
+                if (deviceHasBattery == null)
+                {
+                    Log.Error("Device has battery not found! Skipping...");
+                    continue;
+                }
+
                 devices.Add(new Device()
                 {
-                    name = deviceLog.name.en,
-                    category = deviceLog.category,
-                    chargingStatus = deviceLog.powerStatus.chargingStatus,
-                    level = deviceLog.powerStatus.level,
-                    hasBattery = deviceLog.hasBattery,
+                    name = deviceName.ToString(),
+                    category = deviceCategory.ToString(),
+                    chargingStatus = deviceStatus.ToString(),
+                    level = deviceLevel.Value<int>(),
+                    hasBattery = deviceHasBattery.Value<bool>(),
                     enabled = true
                 });
             }
