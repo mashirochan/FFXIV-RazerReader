@@ -1,5 +1,5 @@
 # Razer Reader
-[![Version number](https://img.shields.io/badge/version-1.0.0.0-ff6262)](https://github.com/mashirochan/FFXIV-RazerReader)
+[![Version number](https://img.shields.io/badge/version-1.1.1-ff6262)](https://github.com/mashirochan/FFXIV-RazerReader)
 [![Download count](https://img.shields.io/endpoint?url=https%3A%2F%2Fqzysathwfhebdai6xgauhz4q7m0mzmrf.lambda-url.us-east-1.on.aws%2FRazerReader&color=%23ff6262)](https://github.com/mashirochan/FFXIV-RazerReader)
 [![Availability](https://img.shields.io/badge/availability-stable-limegreen)](https://github.com/mashirochan/FFXIV-RazerReader)
 
