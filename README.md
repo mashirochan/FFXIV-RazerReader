@@ -21,6 +21,7 @@ For any questions or bugs, please [Create an Issue](https://github.com/mashiroch
 * Window Border: Whether or not the Main Window has a border `(Default: YES)`
 * Color Percent: Whether or not the battery levels are colored `(Default: YES)`
 * Show Battery Icon: Whether or not a battery level icon is visible `(Default: YES)`
+* Show Device Name: Whether or not the device name is visible `(Default: YES)`
 * Show DTR Entry: Whether or not the lowest battery device is displayed in the server bar `(Default: NO)`
 * Low Battery Notification: Whether or not a low battery notification is displayed `(Default: YES)`
 * Low Battery Level: The percent at which a device is considered low battery `(Default: 15)`
