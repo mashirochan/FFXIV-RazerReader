@@ -105,6 +105,16 @@ public class ConfigWindow : Window, IDisposable
 
         ImGui.Spacing();
 
+        var showDeviceName = config.ShowDeviceName;
+        if (ImGui.Checkbox("Show Device Name", ref showDeviceName))
+        {
+            config.ShowDeviceName = showDeviceName;
+            Plugin.Log.Debug($"ShowDeviceName set to: {(showDeviceName ? "True" : "False")}");
+            config.Save();
+        }
+
+        ImGui.Spacing();
+
         var showDtrEntry = config.ShowDtrEntry;
         if (ImGui.Checkbox("Show DTR Entry", ref showDtrEntry))
         {

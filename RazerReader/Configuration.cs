@@ -16,6 +16,7 @@ public class Configuration : IPluginConfiguration
     public bool DrawBorder { get; set; } = true;
     public bool ColorPercent { get; set; } = true;
     public bool ShowBatteryIcon { get; set; } = true;
+    public bool ShowDeviceName { get; set; } = true;
     public bool ShowDtrEntry { get; set; } = false;
     public bool LowBatteryNotification { get; set; } = true;
     public int LowBatteryLevel { get; set; } = 15;

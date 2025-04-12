@@ -104,13 +104,18 @@ public class MainWindow : Window, IDisposable
             }
             ImGui.SameLine();
         }
-        // TO-DO: Actually align battery levels...
-        ImGuiHelpers.SafeTextColoredWrapped(GetLevelColor(device.level), $"{(device.level.ToString().Length == 1 ? "   " : "")}{device.level}%");
 
-        using (ImRaii.PushIndent(1))
+        // TO-DO: Actually align battery levels...
+        ImGui.TextColored(GetLevelColor(device.level), $"{(device.level.ToString().Length == 1 ? "   " : "")}{device.level}%%");
+
+        if (config.ShowDeviceName)
         {
             ImGui.SameLine();
-            ImGui.TextUnformatted(device.name);
+            using (ImRaii.PushIndent(1))
+            {
+                ImGui.SameLine();
+                ImGui.TextUnformatted(device.name);
+            }
         }
 
         ImGui.Spacing();
