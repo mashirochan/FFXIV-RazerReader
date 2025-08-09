@@ -1,3 +1,4 @@
+using Dalamud.Game.Addon.Events.EventDataTypes;
 using Dalamud.Game.Gui.Dtr;
 
 namespace RazerReader
@@ -28,7 +29,7 @@ namespace RazerReader
             dtrEntry.Remove();
         }
 
-        private void OnClick()
+        private void OnClick(DtrInteractionEvent e)
         {
             plugin.ToggleConfigUI();
         }

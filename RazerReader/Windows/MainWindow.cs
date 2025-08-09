@@ -1,8 +1,8 @@
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
-using ImGuiNET;
 using RazerReader.Models;
 using System;
 using System.Drawing;
@@ -100,7 +100,7 @@ public class MainWindow : Window, IDisposable
         {
             using (ImRaii.PushFont(UiBuilder.IconFont))
             {
-                ImGuiHelpers.SafeTextColoredWrapped(GetLevelColor(device.level), GetBatteryIcon(device.level));
+                ImGui.TextColoredWrapped(GetLevelColor(device.level), GetBatteryIcon(device.level));
             }
             ImGui.SameLine();
         }
