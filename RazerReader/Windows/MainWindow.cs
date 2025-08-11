@@ -106,7 +106,7 @@ public class MainWindow : Window, IDisposable
         }
 
         // TO-DO: Actually align battery levels...
-        ImGui.TextColored(GetLevelColor(device.level), $"{(device.level.ToString().Length == 1 ? "   " : "")}{device.level}%%");
+        ImGui.TextColored(GetLevelColor(device.level), $"{(device.level.ToString().Length == 1 ? "   " : "")}{device.level}%");
 
         if (config.ShowDeviceName)
         {
