@@ -15,7 +15,7 @@ public class MainWindow : Window, IDisposable
     private readonly Plugin plugin;
     private readonly Configuration config;
     private readonly ConfigWindow configWindow;
-    private readonly ImRaii.Style preDrawStyles = new();
+    private readonly ImRaii.StyleDisposable preDrawStyles = new();
 
     public MainWindow(Plugin plugin, ConfigWindow configWindow)
         : base("Razer Reader##razerreader_main",
