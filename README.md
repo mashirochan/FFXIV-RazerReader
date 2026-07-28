@@ -1,7 +1,7 @@
 # Battery Buddy
 
 [![Version number](https://img.shields.io/badge/version-2.0.0-ff6262)](https://github.com/mashirochan/FFXIV-BatteryBuddy)
-[![Download count](https://img.shields.io/endpoint?url=https%3A%2F%2Fqzysathwfhebdai6xgauhz4q7m0mzmrf.lambda-url.us-east-1.on.aws%2FBatteryBuddy&color=%23ff6262)](https://github.com/mashirochan/FFXIV-BatteryBuddy)
+[![Download count](https://img.shields.io/endpoint?url=https%3A%2F%2Fqzysathwfhebdai6xgauhz4q7m0mzmrf.lambda-url.us-east-1.on.aws%2FRazerReader&color=%23ff6262)](https://github.com/mashirochan/FFXIV-BatteryBuddy)
 [![Availability](https://img.shields.io/badge/availability-stable-limegreen)](https://github.com/mashirochan/FFXIV-BatteryBuddy)
 
 ![image](https://github.com/user-attachments/assets/047b0550-0209-44f0-a0a1-429a3a5ee27b)
@@ -16,15 +16,19 @@ For any questions or bugs, please [Create an Issue](https://github.com/mashiroch
 
 - Window Enabled: Whether or not the Main Window is visible `(Default: YES)`
 - Movable Window: Whether or not the Main Window is movable `(Default: NO)`
+- Align to Bottom: Whether or not the devices are bottom-aligned `(Default: YES)`
 - Use Dalamud BG Style: Whether or not the user's Dalamud background style should be used `(Default: NO)`
 - BG Opacity: The background opacity to use if the prior setting is disabled `(Default: 100)`
 - Window Border: Whether or not the Main Window has a border `(Default: YES)`
 - Color Percent: Whether or not the battery levels are colored `(Default: YES)`
 - Show Battery Icon: Whether or not a battery level icon is visible `(Default: YES)`
+- Show Device Icon: Whether or not a device type icon is visible `(Default: YES)`
 - Show Device Name: Whether or not the device name is visible `(Default: YES)`
+- Show Remaining Time Tooltip: Whether or not hover tooltips are displayed with device lifetime `(Default: YES`
 - Show DTR Entry: Whether or not the lowest battery device is displayed in the server bar `(Default: NO)`
 - Low Battery Notification: Whether or not a low battery notification is displayed `(Default: YES)`
-- Low Battery Level: The percent at which a device is considered low battery `(Default: 15)`
+- Low Battery Level: The percent at which a device is considered low battery `(Default: 15%)`
+- Low Battery Notification Timer: How often to check for/display low battery notifications `(Default: 10 minutes)`
 - Individual Devices: Once devices are detected, they can be toggled off to not be shown in the Main Window
 
 ## How To Use
