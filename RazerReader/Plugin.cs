@@ -1,22 +1,22 @@
+using BatteryBuddy.Devices;
+using BatteryBuddy.Devices.DeviceManagers;
+using BatteryBuddy.Models;
+using BatteryBuddy.Windows;
 using Dalamud.Game.Command;
+using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using RazerReader.Models;
-using RazerReader.Windows;
-using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
+using System.Numerics;
 using System.Timers;
 
-namespace RazerReader;
+namespace BatteryBuddy;
 
 public sealed class Plugin : IDalamudPlugin
 {
@@ -27,24 +27,24 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IDtrBar DtrBar { get; private set; } = null!;
     [PluginService] internal static INotificationManager NotificationManager { get; private set; } = null!;
 
-    private const string CommandName = "/prazer";
+    private const string CommandName = "/pbattery";
 
     public Configuration Configuration { get; init; }
+    public DeviceSourceManager DeviceSourceManager { get; init; }
 
-    public readonly WindowSystem WindowSystem = new("RazerReader");
+    public readonly WindowSystem WindowSystem = new("BatteryBuddy");
     private ConfigWindow ConfigWindow { get; init; }
     private MainWindow MainWindow { get; init; }
     private ServerBar ServerBar { get; init; }
 
-    private readonly Timer? pollingTimer;
-    private DateTime lastWriteTime;
+    public readonly Timer lowBatteryTimer;
 
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
         ServerBar = new ServerBar(this);
-        ConfigWindow = new ConfigWindow(this, ServerBar);
+        ConfigWindow = new ConfigWindow(this, Log, ServerBar);
         MainWindow = new MainWindow(this, ConfigWindow);
 
         WindowSystem.AddWindow(ConfigWindow);
@@ -52,24 +52,32 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Opens the configuration menu for Razer Reader."
+            HelpMessage = "Opens the configuration menu for Battery Buddy."
         });
 
         PluginInterface.UiBuilder.Draw += DrawUI;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
         Framework.Update += OnUpdate;
 
-        PollFileForChanges(true);
+        lowBatteryTimer = new Timer(Configuration.LowBatteryNotificationTimer * 1000);
+        lowBatteryTimer.Elapsed += OnLowBatteryTimerElapsed;
+        lowBatteryTimer.Start();
+        Log.Info($"Low battery notification timer started with interval: {Configuration.LowBatteryNotificationTimer} seconds.");
 
-        pollingTimer = new Timer(Configuration.PollingTime * 1000);
-        pollingTimer.Elapsed += (sender, e) => PollFileForChanges();
-        pollingTimer.Start();
+        DeviceSourceManager = new DeviceSourceManager([
+            new RazerDeviceManager(this, Log),
+            new LogitechDeviceManager(this, Log)
+        ]);
 
-        Log.Info($"Polling for changes every {Configuration.PollingTime} second(s).");
+        DeviceSourceManager.OnDevicesUpdated += (devices) => UpdateDeviceList([.. devices]);
+
+        DeviceSourceManager.StartAll();
     }
 
     public void Dispose()
     {
+        Configuration.Save();
+
         WindowSystem.RemoveAllWindows();
 
         ConfigWindow.Dispose();
@@ -78,8 +86,10 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.RemoveHandler(CommandName);
 
-        pollingTimer?.Stop();
-        pollingTimer?.Dispose();
+        DeviceSourceManager.StopAll();
+
+        lowBatteryTimer?.Stop();
+        lowBatteryTimer?.Dispose();
     }
 
     private void OnCommand(string command, string args)
@@ -103,280 +113,18 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    private static string? GetMostRecentFile(string directoryPath, string fileFilter)
+    private void OnLowBatteryTimerElapsed(object? sender, ElapsedEventArgs e)
     {
-        try
+        if (!Configuration.LowBatteryNotification)
         {
-            var logFiles = Directory.GetFiles(directoryPath, fileFilter);
-
-            var mostRecentFile = logFiles
-                .Select(file => new FileInfo(file))
-                .OrderByDescending(fileInfo => fileInfo.LastWriteTime)
-                .FirstOrDefault();
-
-            if (mostRecentFile == null)
-            {
-                Log.Error("No matching log files found.");
-                return null;
-            }
-
-            return mostRecentFile.FullName;
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Error polling files: {ex.Message}");
-            return null;
-        }
-    }
-
-    public void PollFileForChanges(bool forceUpdate = false)
-    {
-        try
-        {
-            Log.Debug("Polling...");
-
-            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var directoryPath = Path.Combine(localAppData, "Razer", "RazerAppEngine", "User Data", "Logs");
-
-            if (!Directory.Exists(directoryPath))
-            {
-                Log.Error($"Please make sure you have Synapse v4 installed and \"{directoryPath}\" exists!");
-                var errorDevice = new Device()
-                {
-                    name = "Error, check logs!",
-                    category = "ERROR",
-                    chargingStatus = "ERROR",
-                    level = 0,
-                    hasBattery = false,
-                    enabled = true
-                };
-                Configuration.DeviceList.Mice = [errorDevice];
-                Configuration.Save();
-                return;
-            }
-
-            var fileFilter = "systray_systrayv2*.log";
-            var mostRecentFilePath = GetMostRecentFile(directoryPath, fileFilter);
-
-            if (mostRecentFilePath == null)
-            {
-                Log.Error($"The Razer Synapse log could not be retrieved from \"{directoryPath}\"!");
-                return;
-            }
-
-            var writeTime = File.GetLastWriteTime(mostRecentFilePath);
-
-            if (writeTime > lastWriteTime || forceUpdate == true)
-            {
-                if (forceUpdate == true)
-                {
-                    Log.Debug($"Forcing initial update for: {mostRecentFilePath}");
-                }
-                else
-                {
-                    Log.Debug($"Detected change via polling: {mostRecentFilePath}");
-                }
-
-                ReadLatestContent(mostRecentFilePath);
-                lastWriteTime = writeTime;
-            }
-            else
-            {
-                Log.Debug("No file changes detected!");
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Error polling file: {ex.Message}");
-        }
-    }
-
-    private void ReadLatestContent(string filePath)
-    {
-        Log.Debug($"Reading latest content for \"{filePath}\"...");
-
-        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        var fileLength = stream.Length;
-        var position = fileLength;
-        var bufferSize = 1024;
-
-        var buffer = new byte[bufferSize];
-
-        var content = new StringBuilder();
-
-        while (position > 0)
-        {
-            var readPosition = Math.Max(position - bufferSize, 0);
-            var bytesRead = (int)(position - readPosition);
-
-            stream.Seek(readPosition, SeekOrigin.Begin);
-
-            var bytesReadCount = stream.Read(buffer, 0, bytesRead);
-
-            if (bytesReadCount > 0)
-            {
-                content.Insert(0, Encoding.UTF8.GetString(buffer, 0, bytesReadCount));
-            }
-
-            position = readPosition;
-
-            if (content.ToString().Contains("connectingDeviceData: "))
-            {
-                break;
-            }
-        }
-
-        var startIndex = content.ToString().IndexOf("connectingDeviceData: ") + "connectingDeviceData: ".Length;
-
-        if (startIndex < 0)
-        {
-            Log.Error("'connectingDeviceData: ' not found in the log!");
             return;
         }
 
-        var jsonContent = content.ToString()[startIndex..];
-        var match = Regex.Match(jsonContent, @"\[\{.*\}\]");
+        var lowBatteryDevices = Configuration.DeviceList.All
+            .Where(d => d.enabled == true && d.level < Configuration.LowBatteryLevel)
+            .ToList();
 
-        if (!match.Success)
-        {
-            Log.Error("No JSON data found after 'connectingDeviceData: ' in the log!");
-            return;
-        }
-
-        var json = match.Value;
-        var devicesArray = JArray.Parse(json);
-
-        if (devicesArray == null)
-        {
-            Log.Error("The device list could not be deserialized!");
-            return;
-        }
-            
-        SetDeviceList(ConvertDeviceLogsToDevices(devicesArray));
-    }
-
-    public List<Device> ConvertDeviceLogsToDevices(JArray deviceLogs)
-    {
-        List<Device> devices = [];
-        foreach (var deviceLog in deviceLogs)
-        {
-            var deviceName = deviceLog["name"]?["en"];
-
-            if (deviceName == null)
-            {
-                Log.Error("Device name not found! Skipping...");
-                continue;
-            }
-
-            var deviceLevel = deviceLog["powerStatus"]?["level"];
-
-            if (deviceLevel == null)
-            {
-                Log.Error("Device power level not found! Skipping...");
-                continue;
-            }
-
-            var deviceStatus = deviceLog["powerStatus"]?["chargingStatus"];
-
-            if (deviceStatus == null)
-            {
-                Log.Error("Device charging status not found! Skipping...");
-                continue;
-            }
-
-            var existingDevice = GetExistingDevice(deviceName.ToString());
-
-            if (existingDevice != null)
-            {
-                Log.Debug($"Found existing device: {existingDevice.name}");
-                existingDevice.level = deviceLevel.Value<int>();
-                existingDevice.chargingStatus = deviceStatus.ToString();
-                devices.Add(existingDevice);
-            }
-            else
-            {
-                Log.Debug($"Device not found, adding: {deviceName.ToString()}");
-
-                var deviceCategory = deviceLog["category"];
-
-                if (deviceCategory == null)
-                {
-                    Log.Error("Device category not found! Skipping...");
-                    continue;
-                }
-
-                var deviceHasBattery = deviceLog["hasBattery"];
-
-                if (deviceHasBattery == null)
-                {
-                    Log.Error("Device has battery not found! Skipping...");
-                    continue;
-                }
-
-                devices.Add(new Device()
-                {
-                    name = deviceName.ToString(),
-                    category = deviceCategory.ToString(),
-                    chargingStatus = deviceStatus.ToString(),
-                    level = deviceLevel.Value<int>(),
-                    hasBattery = deviceHasBattery.Value<bool>(),
-                    enabled = true
-                });
-            }
-        }
-        return devices;
-    }
-
-    public Device? GetExistingDevice(string name)
-    {
-        foreach (var mouse in Configuration.DeviceList.Mice)
-        {
-            if (mouse.name == name)
-                return mouse;
-        }
-        foreach (var keyboard in Configuration.DeviceList.Keyboards)
-        {
-            if (keyboard.name == name)
-                return keyboard;
-        }
-        foreach (var headset in Configuration.DeviceList.Headsets)
-        {
-            if (headset.name == name)
-                return headset;
-        }
-        return null;
-    }
-
-    public void SetDeviceList(List<Device> devices)
-    {
-        var deviceList = new DeviceList();
-        var lowBatteryDevices = new List<Device>();
-        foreach (var device in devices)
-        {
-            if (device.hasBattery == false)
-                continue;
-
-            if (device.category == "MOUSE") deviceList.Mice.Add(device);
-            else if (device.category == "KEYBOARD") deviceList.Keyboards.Add(device);
-            else if (device.category == "AUDIO") deviceList.Headsets.Add(device);
-
-            if (deviceList.LowestDevice == null || device.level < deviceList.LowestDevice.level)
-            {
-                deviceList.LowestDevice = device;
-            }
-
-            if (device.level < Configuration.LowBatteryLevel)
-            {
-                lowBatteryDevices.Add(device);
-            }
-        }
-        Log.Debug(JsonConvert.SerializeObject(deviceList));
-        Configuration.DeviceList = deviceList;
-        Configuration.Save();
-        Log.Info("Device information updated!");
-        ServerBar.UpdateDtrBar();
-
-        if (Configuration.LowBatteryNotification && lowBatteryDevices.Count > 0)
+        if (lowBatteryDevices.Count > 0)
         {
             var deviceStr = "";
 
@@ -385,16 +133,101 @@ public sealed class Plugin : IDalamudPlugin
                 deviceStr += $"- {device.name} ({device.level}%)\n";
             }
 
-            var lowBattyNotification = new Notification()
+            var lowBatteryNotification = new Notification()
             {
                 Title = "Low Battery Warning!",
                 Content = $"The following devices have low battery:\n{deviceStr}",
                 MinimizedText = "Devices have low battery!",
                 Type = NotificationType.Warning
-
             };
 
-            NotificationManager.AddNotification(lowBattyNotification);
+            NotificationManager.AddNotification(lowBatteryNotification);
+        }
+    }
+
+    public void UpdateDeviceList(List<Device> devices)
+    {
+        Log.Info($"Received {devices.Count} devices. Updating device list...");
+        foreach (var device in devices)
+        {
+            Log.Debug(JsonConvert.SerializeObject(device));
+        }
+        var newDeviceList = new DeviceList();
+        var lowBatteryDevices = new List<Device>();
+
+        foreach (var device in devices)
+        {
+            if (device.hasBattery == false)
+                continue;
+
+            if (device.category == "MOUSE") newDeviceList.Mice.Add(device);
+            else if (device.category == "KEYBOARD") newDeviceList.Keyboards.Add(device);
+            else if (device.category == "AUDIO" || device.category == "HEADSET") newDeviceList.Headsets.Add(device);
+
+            if (device.level < Configuration.LowBatteryLevel)
+            {
+                lowBatteryDevices.Add(device);
+            }
+        }
+        Log.Debug(JsonConvert.SerializeObject(newDeviceList));
+
+        Configuration.DeviceList = MergeDeviceLists(Configuration.DeviceList, newDeviceList);
+
+        Configuration.Save();
+        Log.Info("Device information updated!");
+        ServerBar.UpdateDtrBar();
+    }
+
+    private DeviceList MergeDeviceLists(DeviceList oldList, DeviceList newList)
+    {
+        var merged = oldList.All
+            .Concat(newList.All)
+            .GroupBy(d => d.name)
+            .Select(g => g.Last())
+            .ToList();
+
+        return new DeviceList
+        {
+            Mice = [.. merged.Where(d => d.category == "MOUSE")],
+            Keyboards = [.. merged.Where(d => d.category == "KEYBOARD")],
+            Headsets = [.. merged.Where(d => d.category == "AUDIO" || d.category == "HEADSET")],
+            LowestDevice = merged.Where(d => d.enabled == true).OrderBy(d => d.level).FirstOrDefault()
+        };
+    }
+
+    public static string GetDeviceIcon(string category)
+    {
+        return category switch
+        {
+            "MOUSE" => FontAwesomeIcon.Mouse.ToIconString(),
+            "KEYBOARD" => FontAwesomeIcon.Keyboard.ToIconString(),
+            "AUDIO" => FontAwesomeIcon.Headset.ToIconString(),
+            "HEADSET" => FontAwesomeIcon.Headset.ToIconString(),
+            _ => FontAwesomeIcon.Question.ToIconString(),
+        };
+    }
+
+    public static Vector4 GetLevelColor(int level)
+    {
+        if (level > 80)
+        {
+            return KnownColor.LightGreen.Vector();
+        }
+        else if (level > 50)
+        {
+            return KnownColor.YellowGreen.Vector();
+        }
+        else if (level > 30)
+        {
+            return KnownColor.Orange.Vector();
+        }
+        else if (level > 15)
+        {
+            return KnownColor.OrangeRed.Vector();
+        }
+        else
+        {
+            return KnownColor.Red.Vector();
         }
     }
 }

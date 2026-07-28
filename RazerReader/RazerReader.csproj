@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Dalamud.NET.Sdk/15.0.0">
   <PropertyGroup>
-    <Version>1.1.5</Version>
-    <Description>A Dalamud plugin for FFXIV that displays the battery level of your wireless Razer devices</Description>
-    <PackageProjectUrl>https://github.com/mashirochan/FFXIV-RazerReader</PackageProjectUrl>
+    <Version>2.0.0</Version>
+    <Description>A Dalamud plugin for FFXIV that displays the battery level of your wireless Razer and Logitech devices</Description>
+    <PackageProjectUrl>https://github.com/mashirochan/FFXIV-BatteryBuddy</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <IsPackable>false</IsPackable>
     <TargetFramework>net10.0-windows7.0</TargetFramework>
+    <RootNamespace>BatteryBuddy</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Websocket.Client" Version="5.3.0" />
+  </ItemGroup>
 </Project>

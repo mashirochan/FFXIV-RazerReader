@@ -1,57 +1,57 @@
 using Dalamud.Game.Addon.Events.EventDataTypes;
 using Dalamud.Game.Gui.Dtr;
 
-namespace RazerReader
+namespace BatteryBuddy;
+
+public class ServerBar
 {
-    public class ServerBar
+    private readonly Plugin plugin;
+    private readonly IDtrBarEntry? dtrEntry;
+
+    public ServerBar(Plugin plugin)
     {
-        private readonly Plugin plugin;
-        private readonly IDtrBarEntry? dtrEntry;
+        this.plugin = plugin;
 
-        public ServerBar(Plugin plugin)
+        if (Plugin.DtrBar.Get("BatteryBuddy") is not { } entry)
+            return;
+
+        dtrEntry = entry;
+        
+        dtrEntry.OnClick += OnClick;
+    }
+
+    public void Dispose()
+    {
+        if (dtrEntry == null)
+            return;
+
+        dtrEntry.OnClick -= OnClick;
+        dtrEntry.Remove();
+    }
+
+    private void OnClick(DtrInteractionEvent e)
+    {
+        plugin.ToggleConfigUI();
+    }
+
+    public void UpdateDtrBar()
+    {
+        if (plugin.Configuration.ShowDtrEntry)
         {
-            this.plugin = plugin;
-
-            if (Plugin.DtrBar.Get("RazerReader") is not { } entry)
-                return;
-
-            dtrEntry = entry;
-            
-            dtrEntry.OnClick += OnClick;
-        }
-
-        public void Dispose()
-        {
-            if (dtrEntry == null)
-                return;
-
-            dtrEntry.OnClick -= OnClick;
-            dtrEntry.Remove();
-        }
-
-        private void OnClick(DtrInteractionEvent e)
-        {
-            plugin.ToggleConfigUI();
-        }
-
-        public void UpdateDtrBar()
-        {
-            if (plugin.Configuration.ShowDtrEntry)
+            dtrEntry!.Shown = true;
+            if (!plugin.Configuration.DeviceList.IsEmpty() && plugin.Configuration.DeviceList.LowestDevice != null)
             {
-                dtrEntry!.Shown = true;
-                if (!plugin.Configuration.DeviceList.IsEmpty() && plugin.Configuration.DeviceList.LowestDevice != null)
-                {
-                    dtrEntry.Text = $"{plugin.Configuration.DeviceList.LowestDevice!.level}% {plugin.Configuration.DeviceList.LowestDevice!.name}";
-                }
-                else
-                {
-                    dtrEntry.Text = "No devices found...";
-                }
+                var nameText = plugin.Configuration.ShowDeviceName ? $" {plugin.Configuration.DeviceList.LowestDevice!.name}" : "";
+                dtrEntry.Text = $"{plugin.Configuration.DeviceList.LowestDevice!.level}%{nameText}";
             }
             else
             {
-                dtrEntry!.Shown = false;
+                dtrEntry.Text = "No devices found...";
             }
+        }
+        else
+        {
+            dtrEntry!.Shown = false;
         }
     }
 }
