@@ -1,6 +1,6 @@
 # Battery Buddy
 
-[![Version number](https://img.shields.io/badge/version-2.0.0-ff6262)](https://github.com/mashirochan/FFXIV-BatteryBuddy)
+[![Version number](https://img.shields.io/badge/version-2.0.1-ff6262)](https://github.com/mashirochan/FFXIV-BatteryBuddy)
 [![Download count](https://img.shields.io/endpoint?url=https%3A%2F%2Fqzysathwfhebdai6xgauhz4q7m0mzmrf.lambda-url.us-east-1.on.aws%2FRazerReader&color=%23ff6262)](https://github.com/mashirochan/FFXIV-BatteryBuddy)
 [![Availability](https://img.shields.io/badge/availability-stable-limegreen)](https://github.com/mashirochan/FFXIV-BatteryBuddy)
 
