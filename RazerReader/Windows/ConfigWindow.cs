@@ -6,8 +6,6 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Common.Lua;
-using Serilog;
 using System;
 using System.Drawing;
 using System.Linq;
@@ -224,7 +222,23 @@ public class ConfigWindow : Window, IDisposable
 
         ImGui.Spacing();
 
+        ImGui.Text($"Last Updated: {GetLatestUpdated().ToLocalTime():G}");
+
         DrawDeviceTable(DeviceSource.Any);
+    }
+
+    private DateTime GetLatestUpdated()
+    {
+        var latestUpdate = DateTime.MinValue;
+        foreach (var manager in plugin.DeviceSourceManager.GetAllManagers())
+        {
+            if (manager.Status.LastUpdate == null)
+                continue;
+
+            if (manager.Status.LastUpdate > latestUpdate)
+                latestUpdate = manager.Status.LastUpdate.Value;
+        }
+        return latestUpdate;
     }
 
     private void DrawRazerTab()

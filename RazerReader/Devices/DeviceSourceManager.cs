@@ -29,6 +29,8 @@ public sealed class DeviceSourceManager
     public IDeviceManager? GetManager(DeviceSource source) =>
         managers.TryGetValue(source, out var manager) ? manager : null;
 
+    public List<IDeviceManager> GetAllManagers() => managers.Values.ToList();
+
     public void StartAll()
     {
         foreach (var manager in managers.Values)

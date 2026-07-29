@@ -10,6 +10,7 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -103,7 +104,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnUpdate(IFramework framework)
     {
-        if (Configuration.IsWindowEnabled)
+        if (Configuration.IsWindowEnabled && Configuration.DeviceList.All.Any(d => d.enabled == true && d.connected == true))
         {
             MainWindow.IsOpen = true;
         }
@@ -191,7 +192,7 @@ public sealed class Plugin : IDalamudPlugin
             Mice = [.. merged.Where(d => d.category == "MOUSE")],
             Keyboards = [.. merged.Where(d => d.category == "KEYBOARD")],
             Headsets = [.. merged.Where(d => d.category == "AUDIO" || d.category == "HEADSET")],
-            LowestDevice = merged.Where(d => d.enabled == true).OrderBy(d => d.level).FirstOrDefault()
+            LowestDevice = merged.Where(d => d.enabled == true && d.connected == true).OrderBy(d => d.level).FirstOrDefault()
         };
     }
 

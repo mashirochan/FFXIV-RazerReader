@@ -28,7 +28,7 @@ public class Configuration : IPluginConfiguration
     public int LowBatteryLevel { get; set; } = 15;
     public int LowBatteryNotificationTimer { get; set; } = 10;
     public DeviceList DeviceList { get; set; } = new DeviceList();
-    
+
     // Razer
     public bool RazerEnabled { get; set; } = false;
 
