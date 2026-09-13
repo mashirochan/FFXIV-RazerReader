@@ -60,10 +60,10 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
         Framework.Update += OnUpdate;
 
-        lowBatteryTimer = new Timer(Configuration.LowBatteryNotificationTimer * 1000);
+        lowBatteryTimer = new Timer(Configuration.LowBatteryNotificationTimer * 1000 * 60);
         lowBatteryTimer.Elapsed += OnLowBatteryTimerElapsed;
         lowBatteryTimer.Start();
-        Log.Info($"Low battery notification timer started with interval: {Configuration.LowBatteryNotificationTimer} seconds.");
+        Log.Info($"Low battery notification timer started with interval: {Configuration.LowBatteryNotificationTimer} minutes.");
 
         DeviceSourceManager = new DeviceSourceManager([
             new RazerDeviceManager(this, Log),
@@ -122,7 +122,7 @@ public sealed class Plugin : IDalamudPlugin
         }
 
         var lowBatteryDevices = Configuration.DeviceList.All
-            .Where(d => d.enabled == true && d.level < Configuration.LowBatteryLevel)
+            .Where(d => d.enabled == true && d.level < Configuration.LowBatteryLevel && d.isCharging != true)
             .ToList();
 
         if (lowBatteryDevices.Count > 0)
