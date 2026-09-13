@@ -210,9 +210,9 @@ public class ConfigWindow : Window, IDisposable
             log.Debug($"LowBatteryNotificationTimer set to: {lowBatteryNotificationTimer}");
 
             plugin.lowBatteryTimer.Stop();
-            plugin.lowBatteryTimer.Interval = lowBatteryNotificationTimer * 1000;
+            plugin.lowBatteryTimer.Interval = lowBatteryNotificationTimer * 1000 * 60;
             plugin.lowBatteryTimer.Start();
-            log.Info($"Low battery notification timer started with interval: {config.LowBatteryNotificationTimer} seconds.");
+            log.Info($"Low battery notification timer started with interval: {config.LowBatteryNotificationTimer} minutes.");
 
             config.Save();
         }
