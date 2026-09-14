@@ -45,6 +45,7 @@ public class ConfigWindow : Window, IDisposable
         DrawGeneralTab();
         DrawRazerTab();
         DrawLogitechTab();
+        DrawCorsairTab();
     }
 
     private void DrawGeneralTab()
@@ -377,6 +378,76 @@ public class ConfigWindow : Window, IDisposable
         }
 
         DrawDeviceTable(DeviceSource.Logitech);
+
+        ImGui.EndDisabled();
+    }
+
+    private void DrawCorsairTab()
+    {
+        using var tabItem = ImRaii.TabItem("Corsair");
+
+        if (!tabItem.Success)
+            return;
+
+        var manager = plugin.DeviceSourceManager.GetManager(DeviceSource.Corsair);
+
+        var corsairEnabled = config.CorsairEnabled;
+        if (ImGui.Checkbox("Enable Corsair Devices", ref corsairEnabled))
+        {
+            config.CorsairEnabled = corsairEnabled;
+            config.Save();
+
+            if (manager != null)
+            {
+                var status = manager.Status;
+                manager.Status.IsEnabled = corsairEnabled;
+
+                if (status.IsRunning && !corsairEnabled)
+                {
+                    manager.Stop();
+                }
+                else if (!status.IsRunning && corsairEnabled)
+                {
+                    manager.Start();
+                }
+            }
+        }
+
+        ImGui.BeginDisabled(!corsairEnabled);
+
+        if (manager != null)
+        {
+            var status = manager.Status;
+
+            using (ImRaii.PushColor(ImGuiCol.Text, status.IsRunning ? KnownColor.Red.Vector() : KnownColor.Green.Vector()))
+            {
+                if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.PowerOff, $"{(status.IsRunning ? "Stop" : "Start")} Corsair Manager"))
+                {
+                    if (status.IsRunning)
+                        manager.Stop();
+                    else
+                        manager.Start();
+                }
+            }
+
+            ImGui.TextUnformatted("Running:");
+            ImGui.SameLine();
+            ImGui.TextColored(status.IsRunning ? KnownColor.Green.Vector() : KnownColor.Red.Vector(), (status.IsRunning ? "Yes" : "No").PadRight(4));
+
+            ImGui.SameLine();
+
+            ImGui.TextUnformatted("Healthy:");
+            ImGui.SameLine();
+            ImGui.TextColored(status.IsHealthy ? KnownColor.Green.Vector() : KnownColor.Red.Vector(), (status.IsHealthy ? "Yes" : "No").PadRight(4));
+
+            if (!string.IsNullOrEmpty(status.Message))
+                ImGui.TextUnformatted(status.Message);
+
+            if (status.LastUpdate.HasValue)
+                ImGui.TextUnformatted($"Last update: {status.LastUpdate?.ToLocalTime():G}");
+        }
+
+        DrawDeviceTable(DeviceSource.Corsair);
 
         ImGui.EndDisabled();
     }

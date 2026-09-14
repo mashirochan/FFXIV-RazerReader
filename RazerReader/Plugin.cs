@@ -67,7 +67,8 @@ public sealed class Plugin : IDalamudPlugin
 
         DeviceSourceManager = new DeviceSourceManager([
             new RazerDeviceManager(this, Log),
-            new LogitechDeviceManager(this, Log)
+            new LogitechDeviceManager(this, Log),
+            new CorsairDeviceManager(this, Log)
         ]);
 
         DeviceSourceManager.OnDevicesUpdated += (devices) => UpdateDeviceList([.. devices]);

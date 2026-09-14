@@ -238,7 +238,7 @@ public class RazerDeviceManager : IDeviceManager
 
     private void UpdateDeviceList(List<Device> devices)
     {
-        foreach (var configDevice in config.DeviceList.All.Where(d => d.source == DeviceSource.Razer))
+        foreach (var configDevice in config.DeviceList.All.Where(d => d.source == Source))
         {
             if (!devices.Any(d => d.name == configDevice.name))
             {
@@ -292,7 +292,7 @@ public class RazerDeviceManager : IDeviceManager
                 log.Debug($"Found existing device: {existingDevice.name}");
                 existingDevice.level = deviceLevel.Value<int>();
                 existingDevice.isCharging = isCharging;
-                existingDevice.source = DeviceSource.Razer;
+                existingDevice.source = Source;
                 existingDevice.connected = connected;
                 devices.Add(existingDevice);
             }
@@ -325,7 +325,7 @@ public class RazerDeviceManager : IDeviceManager
                     hasBattery = deviceHasBattery.Value<bool>(),
                     enabled = true,
                     connected = connected,
-                    source = DeviceSource.Razer
+                    source = Source
                 });
             }
         }
