@@ -12,9 +12,4 @@
   <ItemGroup>
     <PackageReference Include="Websocket.Client" Version="5.3.0" />
   </ItemGroup>
-  <ItemGroup>
-  <None Include="native\x64\iCUESDK.x64_2019.dll">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
-</ItemGroup>
 </Project>
