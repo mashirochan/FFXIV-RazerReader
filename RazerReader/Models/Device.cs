@@ -70,6 +70,5 @@ public class Device
 public enum DeviceSource
 {   Any,
     Razer,
-    Logitech,
-    Corsair
+    Logitech
 }

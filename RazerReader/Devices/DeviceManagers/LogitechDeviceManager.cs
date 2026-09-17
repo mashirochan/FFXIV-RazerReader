@@ -298,7 +298,7 @@ public class LogitechDeviceManager : IDeviceManager
                                 hasBattery = deviceInfo["capabilities"]?["hasBatteryStatus"]?.GetValue<bool>() ?? false,
                                 enabled = true,
                                 connected = true,
-                                source = Source
+                                source = DeviceSource.Logitech
                             };
                             UpdateDeviceList([newDevice]);
                         }
@@ -365,7 +365,7 @@ public class LogitechDeviceManager : IDeviceManager
                     hasBattery = deviceInfo["capabilities"]?["hasBatteryStatus"]?.GetValue<bool>() ?? false,
                     enabled = true,
                     connected = deviceInfo["state"]?.GetValue<string>() == "ACTIVE",
-                    source = Source
+                    source = DeviceSource.Logitech
                 };
 
                 UpdateDeviceList([newDevice]);

@@ -35,12 +35,6 @@ public class Configuration : IPluginConfiguration
     // Logitech
     public bool LogitechEnabled { get; set; } = false;
 
-    // Corsair
-    public string CorsairSdkPath { get; set; } = string.Empty;
-
-    // Corsair
-    public bool CorsairEnabled { get; set; } = false;
-
     public void Save()
     {
         Plugin.PluginInterface.SavePluginConfig(this);
